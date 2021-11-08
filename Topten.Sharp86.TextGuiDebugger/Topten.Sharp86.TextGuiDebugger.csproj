@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net5.0</TargetFrameworks>
+    <RootNamespace>Topten.Sharp86</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="../Topten.Sharp86.common.props" />
+
+  <ItemGroup>
+    <PackageReference Include="Topten.JsonKit" Version="1.1.132" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ConFrames\ConFrames.csproj" />
+    <ProjectReference Include="..\Topten.Sharp86.Debugger\Topten.Sharp86.Debugger.csproj" />
+    <ProjectReference Include="..\Topten.Sharp86\Topten.Sharp86.csproj" />
+  </ItemGroup>
+
+</Project>

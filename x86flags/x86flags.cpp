@@ -969,6 +969,7 @@ void Run(PFNDIVOP16 pfn, const char* pszOpName)
 					__try
 					{
 						uint r = pfn(flagIn, factor, b, &flagOut);
+						flagOut &= flagOut & ~(0x200);		// Remove interrupt flag
 						fprintf(pFile, "%s %.4x %.8x %.4x %.8x %.4x\n", pszOpName, flagIn, factor, b, r, flagOut);
 					}
 					__except (1)

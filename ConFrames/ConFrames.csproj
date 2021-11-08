@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="../buildtools/Topten.props" />
+
+  <PropertyGroup>
+    <TargetFrameworks>net5.0</TargetFrameworks>
+    <RootNamespace>ConFrames</RootNamespace>
+  </PropertyGroup>
+
+</Project>

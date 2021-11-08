@@ -1,0 +1,30 @@
+﻿<Project>
+
+  <Import Project="./buildtools/Topten.props" />
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <TtsCodeSign>True</TtsCodeSign>
+    <TtsInheritDoc>True</TtsInheritDoc>
+    <!--
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <DocumentationFile>$(OutputPath)/$(AssemblyName).xml</DocumentationFile>
+    -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/toptensoftware/sharp86</PackageProjectUrl>
+    <PackageIcon>nuget-icon.png</PackageIcon>
+    <RepositoryUrl>https://github.com/toptensoftware/sharp86</RepositoryUrl>
+    <Copyright>Copyright © 2017-2021 Topten Software.  All Rights Reserved</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(Configuration)'=='Release'">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>
