@@ -2,8 +2,3 @@
 	path = conframes
 	url = git@bitbucket.org:toptensoftware/conframes.git
 	branch = master
-[submodule "ConFrames"]
-	path = ConFrames
-	url = git@bitbucket.org:toptensoftware/ConFrames.git
-	branch = master
-	
