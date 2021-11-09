@@ -26,8 +26,8 @@ if (bt.options.official)
     bt.git_tag();
 
     // Push nuget packages
-//    bt.run(`dotnet nuget push`,
-//           `./Build/Release/*.${bt.options.version.build}.nupkg`,
-//           `--source "Topten GitHub"`);
+    bt.run(`dotnet nuget push`,
+           `./Build/Release/*.${bt.options.version.build}.nupkg`,
+           `--source "Topten GitHub"`);
 }
 
