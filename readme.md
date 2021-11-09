@@ -167,50 +167,6 @@ To raise a hardware interrupt, call the `CPU.RaiseHardwareInterrupt` method.  Th
 
 Note the processor doesn't include an interrupt controller nor have a concept of hardware interrupt priorities - that'll need to be provided by your hosting emulation.  If you call `RaiseInterrupt` a second time before the first interrupt is detected and invoked, the first interrupt will be lost.  Typically this is resolved by implementing an interrupt controller that requires interrupt acknowledgement before raising the next highest priority interrupt.
 
-## Minimal Host Implementation
-
-For a minimal host implementation see the included "ConDos" program.  ConDos provides a minimal implementation of a PC/DOS type machine that implements a single DOS interrupt - Int 21h, Sub-Function 9 - Write a string to the console.
-
-In the `sandbox` subdirectory of the ConDos project, you'll also find a simple DOS .com program that only uses this one DOS interrupt that can be used for testing.  (the `test.com` program will also run on a real DOS machine)
-
-```
-C:\Users\Brad\Projects\Sharp86\ConDos>..\build\Debug\ConDos.exe sandbox\test.com
-Hello World from Sharp86 - (9)
-Hello World from Sharp86 - (8)
-Hello World from Sharp86 - (7)
-Hello World from Sharp86 - (6)
-Hello World from Sharp86 - (5)
-Hello World from Sharp86 - (4)
-Hello World from Sharp86 - (3)
-Hello World from Sharp86 - (2)
-Hello World from Sharp86 - (1)
-Hello World from Sharp86 - (0)
-```
-
-Here's the test program assembly source which can be built using the `build.bat` command in the same directory (you'll need [YASM](https://yasm.tortall.net/) installed).
-
-```
-BITS 16
-org 100h
-
-        mov     cx,10
-loop1:
-        mov     al,cl
-        add     al,'0'-1
-        mov     [counter],al
-        mov     ah,09h
-        mov     dx,hello
-        int     21h
-        loop    loop1
-        ret
-
-
-hello:
-        db      "Hello World from Sharp86 - ("
-counter:
-        db      "0"
-        db      ")", 13, 10, "$"
-```
 
 
 ## Built-in Debugger
