@@ -27,7 +27,7 @@ if (bt.options.official)
 
     // Push nuget packages
     bt.run(`dotnet nuget push`,
-           `./Build/Release/*.${bt.options.version.build}.nupkg`,
+           `.\\Build\\Release\\*.${bt.options.version.build}.nupkg`,
            `--source "Topten GitHub"`);
 }
 
