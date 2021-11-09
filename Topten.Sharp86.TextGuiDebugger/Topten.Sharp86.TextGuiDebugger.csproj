@@ -1,11 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="../Topten.Sharp86.common.props" />
+
   <PropertyGroup>
     <TargetFrameworks>net5.0</TargetFrameworks>
     <RootNamespace>Topten.Sharp86</RootNamespace>
+    <NuspecFile>Topten.Sharp86.TextGuiDebugger.nuspec</NuspecFile>
+    <NuspecProperties>version=$(Version)</NuspecProperties>
   </PropertyGroup>
 
-  <Import Project="../Topten.Sharp86.common.props" />
 
   <ItemGroup>
     <PackageReference Include="Topten.JsonKit" Version="1.1.132" />
