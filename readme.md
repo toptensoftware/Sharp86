@@ -291,8 +291,8 @@ Note too that break points are evaluated for exact matches on the segment/offset
 
 ## License
 
-Sharp86 - 8086 Emulator
-Copyright © 2017-2018 Topten Software. All Rights Reserved.
+Sharp86 - 8086 Emulator  
+Copyright © 2017-2021 Topten Software. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may 
 not use this product except in compliance with the License. You may obtain 
