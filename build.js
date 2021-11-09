@@ -18,20 +18,7 @@ else if (bt.options.clockver)
     bt.clock_version();
 }
 
-var buildSwitches = "-c Release";
-if (!bt.options.verbose)
-    buildSwitches += " -v q --nologo";
-
-function dotnet_build(proj)
-{
-    console.log(`\n---------- ${path.basename(proj)} ----------`);
-    bt.run(`dotnet build ${proj} ${buildSwitches}`);
-}
-
-dotnet_build("./Topten.Sharp86/Topten.Sharp86.csproj");
-dotnet_build("./Topten.Sharp86.Debugger/Topten.Sharp86.Debugger.csproj");
-dotnet_build("./Topten.Sharp86.TextGuiDebugger/Topten.Sharp86.TextGuiDebugger.csproj");
-
+bt.run("dotnet build -c Release");
 
 if (bt.options.official)
 {
@@ -39,8 +26,8 @@ if (bt.options.official)
     bt.git_tag();
 
     // Push nuget packages
-    bt.run(`dotnet nuget push`,
-           `./Build/Release/*.${bt.options.version.build}.nupkg`,
-           `--source "Topten GitHub"`);
+//    bt.run(`dotnet nuget push`,
+//           `./Build/Release/*.${bt.options.version.build}.nupkg`,
+//           `--source "Topten GitHub"`);
 }
 
