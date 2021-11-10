@@ -205,7 +205,7 @@ namespace UnitTests
             emit("mov byte [bx],012h");
             step();
 
-            Assert.Equal(0x12, ReadByte(ds, bx));
+            Assert.Equal(0x12, MMU.ReadByte(ds, bx));
         }
 
         [Fact]

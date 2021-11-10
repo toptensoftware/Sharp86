@@ -23,7 +23,7 @@ using Topten.JsonKit;
 
 namespace Topten.Sharp86
 {
-    public class DebuggerCore : IDebugger, IMemoryBus
+    public class DebuggerCore : IDebugger, IMMU
     {
         public DebuggerCore()
         {
@@ -316,30 +316,25 @@ namespace Topten.Sharp86
             // Hook/unhook the CPU's memory bus
             if (_memReadBreakPoints.Count > 0 || _memWriteBreakPoints.Count>0)
             {
-                if (_cpu.ActiveMemoryBus != this)
+                if (_cpu.MMUHook != this)
                 {
-                    _cpu.ActiveMemoryBus = this;
+                    _cpu.MMUHook = this;
                 }
             }
             else
             {
-                if (_cpu.ActiveMemoryBus == this)
+                if (_cpu.MMUHook == this)
                 {
-                    _cpu.ActiveMemoryBus = _cpu.MemoryBus;
+                    _cpu.MMUHook = null;
                 }
             }
         }
 
         #region IBus
 
-        bool IMemoryBus.IsExecutableSelector(ushort seg)
+        byte IMMU.ReadByte(ushort seg, ushort offset)
         {
-            return _cpu.MemoryBus.IsExecutableSelector(seg);
-        }
-
-        byte IMemoryBus.ReadByte(ushort seg, ushort offset)
-        {
-            byte b = _cpu.MemoryBus.ReadByte(seg, offset);
+            byte b = _cpu.MMU.ReadByte(seg, offset);
 
             for (int i = _memReadBreakPoints.Count - 1; i >= 0; i--)
             {
@@ -349,7 +344,7 @@ namespace Topten.Sharp86
             return b;
         }
 
-        void IMemoryBus.WriteByte(ushort seg, ushort offset, byte value)
+        void IMMU.WriteByte(ushort seg, ushort offset, byte value)
         {
             // Read the old value
             byte oldValue = 0;
@@ -358,7 +353,7 @@ namespace Topten.Sharp86
                 try
                 {
                     // Capture the old value
-                    oldValue = _cpu.MemoryBus.ReadByte(seg, offset);
+                    oldValue = _cpu.MMU.ReadByte(seg, offset);
                 }
                 catch
                 {
@@ -376,7 +371,7 @@ namespace Topten.Sharp86
             }
 
             // Do the write
-            _cpu.MemoryBus.WriteByte(seg, offset, value);
+            _cpu.MMU.WriteByte(seg, offset, value);
         }
 
         #endregion

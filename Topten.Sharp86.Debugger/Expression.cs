@@ -63,9 +63,9 @@ namespace Topten.Sharp86
             get { return _cpu; }
         }
 
-        public IMemoryBus MemoryBus
+        public IMMU MMU
         {
-            get { return _cpu.MemoryBus; }
+            get { return _cpu.MMU; }
         }
 
         public string GenerateDisassemblyAnnotations(string disassembled, string implicitOperands)
@@ -1157,29 +1157,29 @@ abstract class Node
 
                 if (CastType == typeof(FarPointer))
                 {
-                    return new FarPointer((uint)ctx.MemoryBus.ReadDWord(fp.Segment, fp.Offset));
+                    return new FarPointer((uint)ctx.MMU.ReadDWord(fp.Segment, fp.Offset));
                 }
 
                 switch (Type.GetTypeCode(CastType))
                 {
                     case TypeCode.Byte:
-                        return ctx.MemoryBus.ReadByte(fp.Segment, fp.Offset);
+                        return ctx.MMU.ReadByte(fp.Segment, fp.Offset);
 
                     case TypeCode.SByte:
-                        return (sbyte)ctx.MemoryBus.ReadByte(fp.Segment, fp.Offset);
+                        return (sbyte)ctx.MMU.ReadByte(fp.Segment, fp.Offset);
 
                     case TypeCode.Int16:
-                        return (short)ctx.MemoryBus.ReadWord(fp.Segment, fp.Offset);
+                        return (short)ctx.MMU.ReadWord(fp.Segment, fp.Offset);
 
                     case TypeCode.UInt32:
-                        return (uint)ctx.MemoryBus.ReadDWord(fp.Segment, fp.Offset);
+                        return (uint)ctx.MMU.ReadDWord(fp.Segment, fp.Offset);
 
                     case TypeCode.Int32:
-                        return (int)ctx.MemoryBus.ReadDWord(fp.Segment, fp.Offset);
+                        return (int)ctx.MMU.ReadDWord(fp.Segment, fp.Offset);
 
                     case TypeCode.UInt16:
                     case TypeCode.Empty:
-                        return (ushort)ctx.MemoryBus.ReadWord(fp.Segment, fp.Offset);
+                        return (ushort)ctx.MMU.ReadWord(fp.Segment, fp.Offset);
 
                     default:
                         throw new InvalidOperationException(string.Format("Don't know how to dereference ptr of type: {0}", CastType));

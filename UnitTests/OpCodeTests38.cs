@@ -12,13 +12,13 @@ namespace UnitTests
         [Fact]
         public void Cmp_Eb_Gb()
         {
-            WriteByte(0, 100, 40);
+            MMU.WriteByte(0, 100, 40);
             FlagC = true;
             FlagZ = true;
             al = 10;
             emit("cmp byte [100], al");
             run();
-            Assert.Equal(40, ReadByte(0, 100));
+            Assert.Equal(40, MMU.ReadByte(0, 100));
             Assert.False(FlagZ);
             Assert.False(FlagC);
         }
@@ -40,7 +40,7 @@ namespace UnitTests
         [Fact]
         public void Cmp_Gb_Eb()
         {
-            WriteByte(0, 100, 10);
+            MMU.WriteByte(0, 100, 10);
             al = 40;
             FlagC = true;
             FlagZ = true;

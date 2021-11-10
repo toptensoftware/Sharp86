@@ -12,78 +12,78 @@ namespace UnitTests
         [Fact]
         public void Add_Eb_Ib()
         {
-            WriteByte(0, 100, 40);
+            MMU.WriteByte(0, 100, 40);
             emit("add byte [100], 20");
             run();
-            Assert.Equal(60, ReadByte(0, 100));
+            Assert.Equal(60, MMU.ReadByte(0, 100));
         }
 
         [Fact]
         public void Or_Eb_Ib()
         {
-            WriteByte(0, 100, 0x41);
+            MMU.WriteByte(0, 100, 0x41);
             emit("or byte [100], 21h");
             run();
-            Assert.Equal(0x61, ReadByte(0, 100));
+            Assert.Equal(0x61, MMU.ReadByte(0, 100));
         }
 
         [Fact]
         public void Adc_Eb_Ib()
         {
-            WriteByte(0, 100, 40);
+            MMU.WriteByte(0, 100, 40);
             FlagC = true;
             emit("adc byte [100], 20");
             run();
-            Assert.Equal(61, ReadByte(0, 100));
+            Assert.Equal(61, MMU.ReadByte(0, 100));
         }
 
         [Fact]
         public void Sbb_Eb_Ib()
         {
-            WriteByte(0, 100, 40);
+            MMU.WriteByte(0, 100, 40);
             FlagC = true;
             emit("sbb byte [100], 10");
             run();
-            Assert.Equal(29, ReadByte(0, 100));
+            Assert.Equal(29, MMU.ReadByte(0, 100));
         }
 
         [Fact]
         public void And_Eb_Ib()
         {
-            WriteByte(0, 100, 0x60);
+            MMU.WriteByte(0, 100, 0x60);
             emit("and byte [100], 20h");
             run();
-            Assert.Equal(0x20, ReadByte(0, 100));
+            Assert.Equal(0x20, MMU.ReadByte(0, 100));
         }
 
         [Fact]
         public void Sub_Eb_Ib()
         {
-            WriteByte(0, 100, 40);
+            MMU.WriteByte(0, 100, 40);
             FlagC = true;
             emit("sub byte [100], 10");
             run();
-            Assert.Equal(30, ReadByte(0, 100));
+            Assert.Equal(30, MMU.ReadByte(0, 100));
         }
 
         [Fact]
         public void Xor_Eb_Ib()
         {
-            WriteByte(0, 100, 0x60);
+            MMU.WriteByte(0, 100, 0x60);
             emit("xor byte [100], 0x20");
             run();
-            Assert.Equal(0x40, ReadByte(0, 100));
+            Assert.Equal(0x40, MMU.ReadByte(0, 100));
         }
 
         [Fact]
         public void Cmp_Eb_Ib()
         {
-            WriteByte(0, 100, 40);
+            MMU.WriteByte(0, 100, 40);
             FlagC = true;
             FlagZ = true;
             emit("cmp byte [100], 10");
             run();
-            Assert.Equal(40, ReadByte(0, 100));
+            Assert.Equal(40, MMU.ReadByte(0, 100));
             Assert.False(FlagZ);
             Assert.False(FlagC);
         }
@@ -259,11 +259,11 @@ namespace UnitTests
         [Fact]
         public void Test_Eb_Gb()
         {
-            WriteByte(0, 100, 0x60);
+            MMU.WriteByte(0, 100, 0x60);
             al = 0x20;
             emit("test byte [100], al");
             run();
-            Assert.Equal(0x60, ReadByte(0, 100));
+            Assert.Equal(0x60, MMU.ReadByte(0, 100));
             Assert.False(FlagZ);
         }
 
@@ -281,11 +281,11 @@ namespace UnitTests
         [Fact]
         public void Xchg_Eb_Gb()
         {
-            WriteByte(0, 100, 0x60);
+            MMU.WriteByte(0, 100, 0x60);
             al = 0x20;
             emit("xchg byte [100], al");
             run();
-            Assert.Equal(0x20, ReadByte(0, 100));
+            Assert.Equal(0x20, MMU.ReadByte(0, 100));
             Assert.Equal(0x60, al);
         }
 

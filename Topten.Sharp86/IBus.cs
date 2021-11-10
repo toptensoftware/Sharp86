@@ -21,9 +21,8 @@ namespace Topten.Sharp86
 {
     public interface IMemoryBus
     {
-        byte ReadByte(ushort seg, ushort offset);
-        void WriteByte(ushort seg, ushort offset, byte value);
-        bool IsExecutableSelector(ushort seg);
+        byte ReadByte(uint addr);
+        void WriteByte(uint addr, byte value);
     }
 
     public interface IPortBus
@@ -34,76 +33,53 @@ namespace Topten.Sharp86
 
     public static class IMemoryBusExtensions
     {
-        public static ushort ReadWord(this IMemoryBus This, uint ptr)
+        public static ushort ReadWord(this IMemoryBus This, uint addr)
         {
-            return This.ReadWord((ushort)(ptr >> 16), (ushort)(ptr & 0xFFFF));
+            return (ushort)(This.ReadByte(addr) | This.ReadByte(addr+1) << 8);
         }
-        public static ushort ReadWord(this IMemoryBus This, ushort seg, ushort offset)
+        public static void WriteWord(this IMemoryBus This, uint addr, ushort value)
         {
-            return (ushort)(This.ReadByte(seg, offset) | This.ReadByte(seg, (ushort)(offset + 1)) << 8);
-        }
-        public static void WriteWord(this IMemoryBus This, ushort seg, ushort offset, ushort value)
-        {
-            This.WriteByte(seg, offset, (byte)(value & 0xFF));
-            This.WriteByte(seg, (ushort)(offset + 1), (byte)(value >> 8));
-        }
-        public static uint ReadDWord(this IMemoryBus This, uint ptr)
-        {
-            return This.ReadDWord((ushort)(ptr >> 16), (ushort)(ptr & 0xFFFF));
+            This.WriteByte(addr, (byte)(value & 0xFF));
+            This.WriteByte(addr + 1, (byte)(value >> 8));
         }
 
-        public static uint ReadDWord(this IMemoryBus This, ushort seg, ushort offset)
+        public static uint ReadDWord(this IMemoryBus This, uint addr)
         {
             return (uint)(
-                    This.ReadByte(seg, offset) |
-                    (This.ReadByte(seg, (ushort)(offset + 1)) << 8) |
-                    (This.ReadByte(seg, (ushort)(offset + 2)) << 16) |
-                    (This.ReadByte(seg, (ushort)(offset + 3)) << 24));
+                    This.ReadByte(addr) |
+                    (This.ReadByte(addr + 1) << 8) |
+                    (This.ReadByte(addr + 2) << 16) |
+                    (This.ReadByte(addr + 3) << 24));
 
         }
-        public static void WriteDWord(this IMemoryBus This, ushort seg, ushort offset, uint value)
+        public static void WriteDWord(this IMemoryBus This, uint addr, uint value)
         {
-            This.WriteByte(seg, offset, (byte)(value & 0xFF));
-            This.WriteByte(seg, (ushort)(offset + 1), (byte)((value >> 8) & 0xFF));
-            This.WriteByte(seg, (ushort)(offset + 2), (byte)((value >> 16) & 0xFF));
-            This.WriteByte(seg, (ushort)(offset + 3), (byte)((value >> 24) & 0xFF));
+            This.WriteByte(addr, (byte)(value & 0xFF));
+            This.WriteByte(addr + 1, (byte)((value >> 8) & 0xFF));
+            This.WriteByte(addr + 2, (byte)((value >> 16) & 0xFF));
+            This.WriteByte(addr + 3, (byte)((value >> 24) & 0xFF));
         }
-        public static byte[] ReadBytes(this IMemoryBus This, ushort seg, ushort offset, int count)
+        public static byte[] ReadBytes(this IMemoryBus This, uint addr, uint count)
         {
             byte[] buf = new byte[count];
-            for (int i = 0; i < count; i++)
+            for (uint i = 0; i < count; i++)
             {
-                buf[i] = This.ReadByte(seg, offset++);
+                buf[i] = This.ReadByte(addr++);
             }
             return buf;
         }
 
-        public static byte[] ReadBytes(this IMemoryBus This, uint ptr, int count)
-        {
-            return This.ReadBytes((ushort)(ptr >> 16), (ushort)(ptr & 0xFFFF), count);
-        }
-
-        public static void WriteBytes(this IMemoryBus This, ushort seg, ushort offset, byte[] bytes, int length = -1)
+        public static void WriteBytes(this IMemoryBus This, uint addr, byte[] bytes, int length = -1)
         {
             if (length < 0)
                 length = bytes.Length;
             for (int i = 0; i < length; i++)
             {
-                This.WriteByte(seg, offset++, bytes[i]);
+                This.WriteByte(addr++, bytes[i]);
             }
         }
 
-        public static void WriteBytes(this IMemoryBus This, uint ptr, byte[] bytes)
-        {
-            This.WriteBytes((ushort)(ptr >> 16), (ushort)(ptr & 0xFFFF), bytes);
-        }
-
-        public static ushort WriteString(this IMemoryBus This, uint ptr, string str, ushort length)
-        {
-            return This.WriteString((ushort)(ptr >> 16), (ushort)(ptr & 0xFFFF), str, length);
-        }
-
-        public static ushort WriteString(this IMemoryBus This, ushort seg, ushort offset, string str, ushort length)
+        public static ushort WriteString(this IMemoryBus This, uint addr, string str, ushort length)
         {
             var bytes = Encoding.GetEncoding(1252).GetBytes(str);
             length = (ushort)Math.Min(bytes.Length, length - 1);
@@ -111,54 +87,45 @@ namespace Topten.Sharp86
             // Write string
             for (int i = 0; i < bytes.Length; i++)
             {
-                This.WriteByte(seg, offset++, bytes[i]);
+                This.WriteByte(addr++, bytes[i]);
             }
 
             // Null terminator
-            This.WriteByte(seg, offset, 0);
+            This.WriteByte(addr, 0);
             return length;
         }
 
-        public static string ReadString(this IMemoryBus This, uint ptr)
-        {
-            return ReadString(This, (ushort)(ptr >> 16), (ushort)(ptr & 0xFFFF));
-        }
 
-        public static string ReadString(this IMemoryBus This, ushort seg, ushort offset, byte terminator = 0)
+        public static string ReadString(this IMemoryBus This, ushort addr, byte terminator = 0)
         {
-            if (seg == 0 && offset == 0)
+            if (addr == 0)
                 return null;
 
-            ushort endPos = offset;
-            while (This.ReadByte(seg, endPos) != terminator)
+            uint endPos = addr;
+            while (This.ReadByte(endPos) != terminator)
             {
                 endPos++;
             }
 
-            return Encoding.GetEncoding(1252).GetString(This.ReadBytes(seg, offset, endPos - offset));
+            return Encoding.GetEncoding(1252).GetString(This.ReadBytes(addr, endPos - addr));
         }
 
-        public static string ReadString(this IMemoryBus This, uint ptr, ushort bufSize)
+        public static string ReadString(this IMemoryBus This, uint addr, ushort bufSize)
         {
-            return ReadString(This, (ushort)(ptr >> 16), (ushort)(ptr & 0xFFFF), bufSize);
-        }
-
-        public static string ReadString(this IMemoryBus This, ushort seg, ushort offset, ushort bufSize)
-        {
-            if (seg == 0 && offset == 0)
+            if (addr == 0)
                 return null;
 
-            ushort endPos = offset;
-            while (This.ReadByte(seg, endPos) != 0 && (endPos - offset) < bufSize - 1)
+            uint endPos = addr;
+            while (This.ReadByte(endPos) != 0 && (endPos - addr) < bufSize - 1)
             {
                 endPos++;
             }
 
-            return Encoding.GetEncoding(1252).GetString(This.ReadBytes(seg, offset, endPos - offset));
+            return Encoding.GetEncoding(1252).GetString(This.ReadBytes(addr, endPos - addr));
         }
 
 
-        public static void WriteStruct<T>(this IMemoryBus This, uint ptr, ref T value)
+        public static void WriteStruct<T>(this IMemoryBus This, uint addr, ref T value)
         {
             unsafe
             {
@@ -167,28 +134,15 @@ namespace Topten.Sharp86
                 {
                     Marshal.StructureToPtr(value, (IntPtr)p, false);
                 }
-                This.WriteBytes(ptr, temp);
+                This.WriteBytes(addr, temp);
             }
         }
 
-        public static void WriteStruct<T>(this IMemoryBus This, ushort seg, ushort offs, ref T value)
+        public static T ReadStruct<T>(this IMemoryBus This, uint addr)
         {
             unsafe
             {
-                byte[] temp = new byte[Marshal.SizeOf(typeof(T))];
-                fixed (byte* p = temp)
-                {
-                    Marshal.StructureToPtr(value, (IntPtr)p, false);
-                }
-                This.WriteBytes(seg, offs, temp);
-            }
-        }
-
-        public static T ReadStruct<T>(this IMemoryBus This, uint ptr)
-        {
-            unsafe
-            {
-                var temp = This.ReadBytes(ptr, Marshal.SizeOf(typeof(T)));
+                var temp = This.ReadBytes(addr, (uint)Marshal.SizeOf(typeof(T)));
                 fixed (byte* p = temp)
                 {
                     return (T)Marshal.PtrToStructure((IntPtr)p, typeof(T));
@@ -270,6 +224,7 @@ namespace Topten.Sharp86
 
     }
 
+    /*
     public static class CPUExtensions
     {
         public static void PushWord(this CPU This, ushort value)
@@ -299,4 +254,5 @@ namespace Topten.Sharp86
         }
 
     }
+    */
 }

@@ -67,20 +67,20 @@ namespace UnitTests
         public void inc_Eb()
         {
             bx = 0x1000;
-            WriteByte(ds, bx, 0x12);
+            MMU.WriteByte(ds, bx, 0x12);
             emit("inc byte [bx]");
             step();
-            Assert.Equal(0x13, ReadByte(ds, bx));
+            Assert.Equal(0x13, MMU.ReadByte(ds, bx));
         }
 
         [Fact]
         public void dec_Eb()
         {
             bx = 0x1000;
-            WriteByte(ds, bx, 0x12);
+            MMU.WriteByte(ds, bx, 0x12);
             emit("dec byte [bx]");
             step();
-            Assert.Equal(0x11, ReadByte(ds, bx));
+            Assert.Equal(0x11, MMU.ReadByte(ds, bx));
         }
 
         [Fact]

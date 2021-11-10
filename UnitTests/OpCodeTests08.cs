@@ -12,11 +12,11 @@ namespace UnitTests
         [Fact]
         public void Or_Eb_Gb()
         {
-            WriteByte(0, 100, 0x41);
+            MMU.WriteByte(0, 100, 0x41);
             al = 0x21;
             emit("or byte [100], al");
             run();
-            Assert.Equal(0x61, ReadByte(0, 100));
+            Assert.Equal(0x61, MMU.ReadByte(0, 100));
         }
 
         [Fact]
@@ -32,7 +32,7 @@ namespace UnitTests
         [Fact]
         public void Or_Gb_Eb()
         {
-            WriteByte(0, 100, 0x41);
+            MMU.WriteByte(0, 100, 0x41);
             al = 0x21;
             emit("or al, byte [100]");
             run();

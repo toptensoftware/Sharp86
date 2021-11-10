@@ -74,7 +74,7 @@ namespace UnitTests
 
             Assert.True(WasPortAccessed(0x5678));
             Assert.Equal(0x1001, di);
-            Assert.Equal(0x12, ReadByte(ds, 0x1000));
+            Assert.Equal(0x12, MMU.ReadByte(ds, 0x1000));
         }
 
         [Fact]
@@ -96,7 +96,7 @@ namespace UnitTests
             Assert.Equal(0, cx);
             for (int i=0; i<5; i++)
             {
-                Assert.Equal(ReadByte(ds, (ushort)(0x1000 + i)), (byte)(0x12 + i));
+                Assert.Equal(MMU.ReadByte(ds, (ushort)(0x1000 + i)), (byte)(0x12 + i));
             }
         }
 
@@ -176,7 +176,7 @@ namespace UnitTests
         {
             si = 0x1000;
             dx = 0x5678;
-            WriteByte(ds, si, 0x12);
+            MMU.WriteByte(ds, si, 0x12);
             emit("outsb");
             step();
 
@@ -193,7 +193,7 @@ namespace UnitTests
             cx = 5;
             for (int i = 0; i < 5; i++)
             {
-                WriteByte(ds, (ushort)(si + i), (byte)(0x12 + i));
+                MMU.WriteByte(ds, (ushort)(si + i), (byte)(0x12 + i));
             }
             emit("rep outsb");
             step();

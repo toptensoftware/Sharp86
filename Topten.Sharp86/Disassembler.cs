@@ -23,37 +23,37 @@ namespace Topten.Sharp86
         {
             if (cpu!= null)
             {
-                _memoryBus = cpu.MemoryBus;
+                _mmu = cpu.MMU;
                 cs = cpu.cs;
                 ip = cpu.ip;
             }
         }
 
-        public Disassembler(IMemoryBus memoryBus, ushort cs, ushort ip)
+        public Disassembler(IMMU memoryBus, ushort cs, ushort ip)
         {
-            _memoryBus = memoryBus;
+            _mmu = memoryBus;
             this.cs = cs;
             this.ip = ip;
         }
 
-        IMemoryBus _memoryBus;
+        IMMU _mmu;
         public ushort cs;
         public ushort ip;
 
-        public IMemoryBus MemoryBus
+        public IMMU MMU
         {
-            get { return _memoryBus; }
-            set { _memoryBus = value; }
+            get { return _mmu; }
+            set { _mmu= value; }
         }
 
         public virtual byte ReadByte(ushort seg, ushort offset)
         {
-            return _memoryBus.ReadByte(seg, offset);
+            return _mmu.ReadByte(seg, offset);
         }
 
-        public ushort ReadWord(ushort seg, ushort offset)
+        public virtual ushort ReadWord(ushort seg, ushort offset)
         {
-            return (ushort)(ReadByte(seg, offset) | ReadByte(seg, (ushort)(offset + 1)) << 8);
+            return _mmu.ReadWord(seg, offset);
         }
 
 

@@ -12,11 +12,11 @@ namespace UnitTests
         [Fact]
         public void Xor_Eb_Gb()
         {
-            WriteByte(0, 100, 0x60);
+            MMU.WriteByte(0, 100, 0x60);
             al = 0x20;
             emit("xor byte [100], al");
             run();
-            Assert.Equal(0x40, ReadByte(0, 100));
+            Assert.Equal(0x40, MMU.ReadByte(0, 100));
         }
 
         [Fact]
@@ -32,7 +32,7 @@ namespace UnitTests
         [Fact]
         public void Xor_Gb_Eb()
         {
-            WriteByte(0, 100, 0x60);
+            MMU.WriteByte(0, 100, 0x60);
             al = 0x20;
             emit("xor al, byte [100]");
             run();

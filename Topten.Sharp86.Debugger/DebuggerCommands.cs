@@ -315,7 +315,7 @@ namespace Topten.Sharp86
                                     debugger.Write(string.Format("{0:X4}:{1:X4} ", seg, ofs + i));
                                 }
 
-                                byte b = debugger.CPU.MemoryBus.ReadByte(seg, (ushort)(ofs + i));
+                                byte b = debugger.CPU.MMU.ReadByte(seg, (ushort)(ofs + i));
                                 chBuf[i % 16] = (b >= 32 && b < 128) ? (char)b : ' ';
                                 debugger.Write(string.Format("{0:X2} ", b));
                             }
@@ -340,7 +340,7 @@ namespace Topten.Sharp86
                                 debugger.Write(string.Format("{0:X4}:{1:X4} ", seg, ofs + i * 2));
                             }
 
-                            var val = debugger.CPU.MemoryBus.ReadWord(seg, (ushort)(ofs + i * 2));
+                            var val = debugger.CPU.MMU.ReadWord(seg, (ushort)(ofs + i * 2));
                             debugger.Write(string.Format("{0:X4} ", val));
                         }
 
@@ -359,7 +359,7 @@ namespace Topten.Sharp86
                                 debugger.Write(string.Format("{0:X4}:{1:X4} ", seg, ofs + i * 4));
                             }
 
-                            var val = debugger.CPU.MemoryBus.ReadDWord(seg, (ushort)(ofs + i * 4));
+                            var val = debugger.CPU.MMU.ReadDWord(seg, (ushort)(ofs + i * 4));
                             debugger.Write(string.Format("{0:X8} ", val));
                         }
 
@@ -378,7 +378,7 @@ namespace Topten.Sharp86
                                 debugger.Write(string.Format("{0:X4}:{1:X4} ", seg, ofs + i * 2));
                             }
 
-                            var val = debugger.CPU.MemoryBus.ReadWord(seg, (ushort)(ofs + i * 2));
+                            var val = debugger.CPU.MMU.ReadWord(seg, (ushort)(ofs + i * 2));
                             debugger.Write(string.Format("{0,6} ", unchecked((short)val)));
                         }
 
@@ -397,7 +397,7 @@ namespace Topten.Sharp86
                                 debugger.Write(string.Format("{0:X4}:{1:X4} ", seg, ofs + i * 4));
                             }
 
-                            var val = debugger.CPU.MemoryBus.ReadDWord(seg, (ushort)(ofs + i * 4));
+                            var val = debugger.CPU.MMU.ReadDWord(seg, (ushort)(ofs + i * 4));
                             debugger.Write(string.Format("{0,11} ", unchecked((int)val)));
                         }
 

@@ -13,7 +13,7 @@ namespace UnitTests
         public void mov_al_Ob()
         {
             es = 0x0020;
-            WriteByte(es, 0x1000, 0x12);
+            MMU.WriteByte(es, 0x1000, 0x12);
             emit("mov al,[es:0x1000]");
             run();
             Assert.Equal(0x12, al);
@@ -36,7 +36,7 @@ namespace UnitTests
             al = 0x12;
             emit("mov [es:0x1000],al");
             run();
-            Assert.Equal(0x12, ReadByte(es, 0x1000));
+            Assert.Equal(0x12, MMU.ReadByte(es, 0x1000));
         }
 
         [Fact]
@@ -57,10 +57,10 @@ namespace UnitTests
             si = 0x100;
             di = 0x200;
 
-            WriteByte(ds, si, 0x12);
+            MMU.WriteByte(ds, si, 0x12);
             emit("movsb");
             run();
-            Assert.Equal(0x12, ReadByte(es, (ushort)(di - 1)));
+            Assert.Equal(0x12, MMU.ReadByte(es, (ushort)(di - 1)));
             Assert.Equal(0x101, si);
             Assert.Equal(0x201, di);
         }
@@ -76,7 +76,7 @@ namespace UnitTests
 
             for (int i = 0; i < 16; i++)
             {
-                WriteByte(ds, (ushort)(si + i), (byte)(0x10 + i));
+                MMU.WriteByte(ds, (ushort)(si + i), (byte)(0x10 + i));
             }
 
             emit("rep movsb");
@@ -87,7 +87,7 @@ namespace UnitTests
             Assert.Equal(0, cx);
             for (int i = 0; i < 16; i++)
             {
-                Assert.Equal(ReadByte(es, (ushort)(di - 16 + i)), (byte)(0x10 + i));
+                Assert.Equal(MMU.ReadByte(es, (ushort)(di - 16 + i)), (byte)(0x10 + i));
             }
         }
 
@@ -119,7 +119,7 @@ namespace UnitTests
 
             for (int i = 0; i < 16; i++)
             {
-                WriteByte(ds, (ushort)(si + i), (byte)(0x10 + i));
+                MMU.WriteByte(ds, (ushort)(si + i), (byte)(0x10 + i));
             }
 
             emit("rep movsb");
@@ -130,7 +130,7 @@ namespace UnitTests
             Assert.Equal(0, cx);
             for (int i = 0; i < 16; i++)
             {
-                Assert.Equal(ReadByte(es, (ushort)(di - 16 + i)), (byte)(0x10));
+                Assert.Equal(MMU.ReadByte(es, (ushort)(di - 16 + i)), (byte)(0x10));
             }
         }
 
@@ -205,7 +205,7 @@ namespace UnitTests
 
             for (int i = 0; i < 16; i++)
             {
-                WriteByte(ds, (ushort)(si - i), (byte)(0x10 + i));
+                MMU.WriteByte(ds, (ushort)(si - i), (byte)(0x10 + i));
             }
 
             emit("rep movsb");
@@ -216,7 +216,7 @@ namespace UnitTests
             Assert.Equal(0, cx);
             for (int i = 0; i < 16; i++)
             {
-                Assert.Equal(ReadByte(es, (ushort)(di + 16 - i)), (byte)(0x10 + i));
+                Assert.Equal(MMU.ReadByte(es, (ushort)(di + 16 - i)), (byte)(0x10 + i));
             }
         }
 
@@ -256,8 +256,8 @@ namespace UnitTests
             si = 0x100;
             di = 0x200;
 
-            WriteByte(ds, si, 0x12);
-            WriteByte(es, di, 0x56);
+            MMU.WriteByte(ds, si, 0x12);
+            MMU.WriteByte(es, di, 0x56);
             emit("cmpsb");
             run();
             Assert.Equal(0x101, si);
@@ -277,11 +277,11 @@ namespace UnitTests
 
             for (int i = 0; i < 16; i++)
             {
-                WriteByte(ds, (ushort)(si + i), (byte)(0x10 + i));
-                WriteByte(es, (ushort)(di + i), (byte)(0x10 + i));
+                MMU.WriteByte(ds, (ushort)(si + i), (byte)(0x10 + i));
+                MMU.WriteByte(es, (ushort)(di + i), (byte)(0x10 + i));
             }
 
-            WriteByte(es, (ushort)(di + 5), (byte)(0xFF));
+            MMU.WriteByte(es, (ushort)(di + 5), (byte)(0xFF));
 
             emit("repe cmpsb");
             run();

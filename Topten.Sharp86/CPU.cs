@@ -133,6 +133,8 @@ namespace Topten.Sharp86
     {
         public CPU()
         {
+            _mmuReal = new MMURealMode();
+            _mmuHook = _mmuReal;
         }
 
         public virtual void Reset()
@@ -153,23 +155,26 @@ namespace Topten.Sharp86
             EFlags = 0;
         }
 
-        IMemoryBus _memoryBus;
-        public IMemoryBus MemoryBus
+        MMURealMode _mmuReal;
+        public IMMU MMU
         {
-            get { return _memoryBus; }
-            set
-            {
-                System.Diagnostics.Debug.Assert(_activeMemoryBus == null);
-                _memoryBus = value;
-                _activeMemoryBus = value;
-            }
+            get => _mmuReal;
         }
 
-        IMemoryBus _activeMemoryBus;
-        public IMemoryBus ActiveMemoryBus
+        public IMemoryBus MemoryBus
         {
-            get { return _activeMemoryBus; }
-            set { _activeMemoryBus = value; }
+            get => _mmuReal.MemoryBus;
+            set => _mmuReal.MemoryBus = value;
+        }
+
+        IMMU _mmuHook;
+        public IMMU MMUHook
+        {
+            get => _mmuHook;
+            set
+            {
+                _mmuHook = value ?? _mmuReal;
+            }
         }
 
         IPortBus _portBus;
@@ -181,20 +186,7 @@ namespace Topten.Sharp86
 
         #region Segment Registers
         public ushort ss;
-        public ushort cs
-        {
-            get { return _cs; }
-            set
-            {
-                // Verify code selector
-                if (_activeMemoryBus != null && !_activeMemoryBus.IsExecutableSelector(value))
-                    throw new NonExecutableSegmentException();
-
-                // Store it 
-                _cs = value;
-            }
-        }
-        ushort _cs = 0xF000;
+        public ushort cs = 0xF000;
         public ushort es;
         public ushort ds;
         public ushort ReadReg(RegSeg reg)
@@ -413,7 +405,7 @@ namespace Topten.Sharp86
             _haveReadModRM = true;
 
             // Read the mod RM byte
-            _modRM = _activeMemoryBus.ReadByte(cs, ip++);
+            _modRM = _mmuHook.ReadByte(cs, ip++);
             _modRMIsPointer = true;
 
             ushort displacement;
@@ -457,7 +449,7 @@ namespace Topten.Sharp86
 
                         case 6:
                             _modRMSeg = ResolveSegmentPtr(RegSeg.DS);
-                            _modRMOffset = _activeMemoryBus.ReadWord(cs, ip);
+                            _modRMOffset = _mmuHook.ReadWord(cs, ip);
                             ip += 2;
                             break;
 
@@ -471,7 +463,7 @@ namespace Topten.Sharp86
                 case 0x40:
 
                     // Mode 1 (1 byte displacement)
-                    displacement = (ushort)(sbyte)_activeMemoryBus.ReadByte(cs, ip++);
+                    displacement = (ushort)(sbyte)_mmuHook.ReadByte(cs, ip++);
 
                     // Mode 1
                     switch (_modRM & 0x7)
@@ -520,7 +512,7 @@ namespace Topten.Sharp86
 
                 case 0x80:
                     // Mode 2 (2 byte displacement)
-                    displacement = _activeMemoryBus.ReadWord(cs, ip);
+                    displacement = _mmuHook.ReadWord(cs, ip);
                     ip += 2;
 
                     // Mode 1
@@ -583,7 +575,7 @@ namespace Topten.Sharp86
 
             if (_modRMIsPointer)
             {
-                return _activeMemoryBus.ReadByte(_modRMSeg, _modRMOffset);
+                return _mmuHook.ReadByte(_modRMSeg, _modRMOffset);
             }
             else
             {
@@ -599,7 +591,7 @@ namespace Topten.Sharp86
 
             if (_modRMIsPointer)
             {
-                return _activeMemoryBus.ReadWord(_modRMSeg, _modRMOffset);
+                return _mmuHook.ReadWord(_modRMSeg, _modRMOffset);
             }
             else
             {
@@ -615,7 +607,7 @@ namespace Topten.Sharp86
 
             if (_modRMIsPointer)
             {
-                _activeMemoryBus.WriteByte(_modRMSeg, _modRMOffset, value);
+                _mmuHook.WriteByte(_modRMSeg, _modRMOffset, value);
             }
             else
             {
@@ -631,7 +623,7 @@ namespace Topten.Sharp86
 
             if (_modRMIsPointer)
             {
-                _activeMemoryBus.WriteWord(_modRMSeg, _modRMOffset, value);
+                _mmuHook.WriteWord(_modRMSeg, _modRMOffset, value);
             }
             else
             {
@@ -697,13 +689,13 @@ namespace Topten.Sharp86
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         byte Read_Ib()
         {
-            return _activeMemoryBus.ReadByte(cs, ip++);
+            return _mmuHook.ReadByte(cs, ip++);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         ushort Read_Iv()
         {
-            var val = _activeMemoryBus.ReadWord(cs, ip);
+            var val = _mmuHook.ReadWord(cs, ip);
             ip += 2;
             return val;
         }
@@ -720,7 +712,7 @@ namespace Topten.Sharp86
             // Read new location
             try
             {
-                return _activeMemoryBus.ReadWord(idt, (ushort)(interruptNumber * 4 + 2)) != 0;
+                return _mmuHook.ReadWord(idt, (ushort)(interruptNumber * 4 + 2)) != 0;
             }
             catch
             {
@@ -739,8 +731,8 @@ namespace Topten.Sharp86
         public virtual void RaiseInterrupt(byte interruptNumber)
         {
             // Read new location
-            ushort newcs = _activeMemoryBus.ReadWord(idt, (ushort)(interruptNumber * 4 + 2));
-            ushort newip = _activeMemoryBus.ReadWord(idt, (ushort)(interruptNumber * 4));
+            ushort newcs = _mmuHook.ReadWord(idt, (ushort)(interruptNumber * 4 + 2));
+            ushort newip = _mmuHook.ReadWord(idt, (ushort)(interruptNumber * 4));
 
             if (newcs == 0 && newip == 0)
             {
@@ -749,11 +741,11 @@ namespace Topten.Sharp86
 
             // Save state
             sp -= 2;
-            _activeMemoryBus.WriteWord(ss, sp, EFlags);
+            _mmuHook.WriteWord(ss, sp, EFlags);
             sp -= 2;
-            _activeMemoryBus.WriteWord(ss, sp, cs);
+            _mmuHook.WriteWord(ss, sp, cs);
             sp -= 2;
-            _activeMemoryBus.WriteWord(ss, sp, ip);
+            _mmuHook.WriteWord(ss, sp, ip);
 
             // Clear interrupt flag
             FlagI = false;
@@ -959,7 +951,7 @@ namespace Topten.Sharp86
                     prefixHandled:      // will jump back to here after decoding an instruction prefix
 
                     _m1 = true;
-                    byte opCode = _activeMemoryBus.ReadByte(cs, ip++);
+                    byte opCode = _mmuHook.ReadByte(cs, ip++);
                     _m1 = false;
 
                     switch (opCode)
@@ -997,12 +989,12 @@ namespace Topten.Sharp86
                         case 0x06:
                             // PUSH ES
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, es);
+                            _mmuHook.WriteWord(ss, sp, es);
                             break;
 
                         case 0x07:
                             // POP ES
-                            es = _activeMemoryBus.ReadWord(ss, sp);
+                            es = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             break;
 
@@ -1039,7 +1031,7 @@ namespace Topten.Sharp86
                         case 0x0E:
                             // PUSH cs
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, cs);
+                            _mmuHook.WriteWord(ss, sp, cs);
                             break;
 
                         case 0x0F:
@@ -1078,12 +1070,12 @@ namespace Topten.Sharp86
                         case 0x16:
                             // PUSH SS
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, ss);
+                            _mmuHook.WriteWord(ss, sp, ss);
                             break;
 
                         case 0x17:
                             // POP SS
-                            ss = _activeMemoryBus.ReadWord(ss, sp);
+                            ss = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             break;
 
@@ -1120,12 +1112,12 @@ namespace Topten.Sharp86
                         case 0x1E:
                             // PUSH ds
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, ds);
+                            _mmuHook.WriteWord(ss, sp, ds);
                             break;
 
                         case 0x1F:
                             // POP ds
-                            ds = _activeMemoryBus.ReadWord(ss, sp);
+                            ds = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             break;
 
@@ -1370,116 +1362,116 @@ namespace Topten.Sharp86
                         case 0x50:
                             // PUSH AX
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, ax);
+                            _mmuHook.WriteWord(ss, sp, ax);
                             break;
 
                         case 0x51:
                             // PUSH CX
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, cx);
+                            _mmuHook.WriteWord(ss, sp, cx);
                             break;
 
                         case 0x52:
                             // PUSH DX
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, dx);
+                            _mmuHook.WriteWord(ss, sp, dx);
                             break;
 
                         case 0x53:
                             // PUSH BX
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, bx);
+                            _mmuHook.WriteWord(ss, sp, bx);
                             break;
 
                         case 0x54:
                             // PUSH SP
                             temp = sp;
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, temp);
+                            _mmuHook.WriteWord(ss, sp, temp);
                             break;
 
                         case 0x55:
                             // PUSH BP
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, bp);
+                            _mmuHook.WriteWord(ss, sp, bp);
                             break;
 
                         case 0x56:
                             // PUSH SI
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, si);
+                            _mmuHook.WriteWord(ss, sp, si);
                             break;
 
                         case 0x57:
                             // PUSH DI
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, di);
+                            _mmuHook.WriteWord(ss, sp, di);
                             break;
 
                         case 0x58:
                             // POP AX
-                            ax = _activeMemoryBus.ReadWord(ss, sp);
+                            ax = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             break;
 
                         case 0x59:
-                            cx = _activeMemoryBus.ReadWord(ss, sp);
+                            cx = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             break;
 
                         case 0x5A:
-                            dx = _activeMemoryBus.ReadWord(ss, sp);
+                            dx = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             break;
 
                         case 0x5B:
-                            bx = _activeMemoryBus.ReadWord(ss, sp);
+                            bx = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             break;
 
                         case 0x5C:
-                            sp = _activeMemoryBus.ReadWord(ss, sp);
+                            sp = _mmuHook.ReadWord(ss, sp);
                             break;
 
                         case 0x5D:
-                            bp = _activeMemoryBus.ReadWord(ss, sp);
+                            bp = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             break;
 
                         case 0x5E:
-                            si = _activeMemoryBus.ReadWord(ss, sp);
+                            si = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             break;
 
                         case 0x5F:
-                            di = _activeMemoryBus.ReadWord(ss, sp);
+                            di = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             break;
 
                         case 0x60:
                             // PUSHA
-                            _activeMemoryBus.WriteWord(ss, (ushort)(sp - 2), ax);
-                            _activeMemoryBus.WriteWord(ss, (ushort)(sp - 4), cx);
-                            _activeMemoryBus.WriteWord(ss, (ushort)(sp - 6), dx);
-                            _activeMemoryBus.WriteWord(ss, (ushort)(sp - 8), bx);
-                            _activeMemoryBus.WriteWord(ss, (ushort)(sp - 10), sp);
-                            _activeMemoryBus.WriteWord(ss, (ushort)(sp - 12), bp);
-                            _activeMemoryBus.WriteWord(ss, (ushort)(sp - 14), si);
-                            _activeMemoryBus.WriteWord(ss, (ushort)(sp - 16), di);
+                            _mmuHook.WriteWord(ss, (ushort)(sp - 2), ax);
+                            _mmuHook.WriteWord(ss, (ushort)(sp - 4), cx);
+                            _mmuHook.WriteWord(ss, (ushort)(sp - 6), dx);
+                            _mmuHook.WriteWord(ss, (ushort)(sp - 8), bx);
+                            _mmuHook.WriteWord(ss, (ushort)(sp - 10), sp);
+                            _mmuHook.WriteWord(ss, (ushort)(sp - 12), bp);
+                            _mmuHook.WriteWord(ss, (ushort)(sp - 14), si);
+                            _mmuHook.WriteWord(ss, (ushort)(sp - 16), di);
                             sp -= 16;
                             break;
 
                         case 0x61:
                             // PUSHA
                             sp += 16;
-                            ax = _activeMemoryBus.ReadWord(ss, (ushort)(sp - 2));
-                            cx = _activeMemoryBus.ReadWord(ss, (ushort)(sp - 4));
-                            dx = _activeMemoryBus.ReadWord(ss, (ushort)(sp - 6));
-                            bx = _activeMemoryBus.ReadWord(ss, (ushort)(sp - 8));
-                            //sp = _activeMemoryBus.ReadWord(ss, (ushort)(sp - 10));
-                            bp = _activeMemoryBus.ReadWord(ss, (ushort)(sp - 12));
-                            si = _activeMemoryBus.ReadWord(ss, (ushort)(sp - 14));
-                            di = _activeMemoryBus.ReadWord(ss, (ushort)(sp - 16));
+                            ax = _mmuHook.ReadWord(ss, (ushort)(sp - 2));
+                            cx = _mmuHook.ReadWord(ss, (ushort)(sp - 4));
+                            dx = _mmuHook.ReadWord(ss, (ushort)(sp - 6));
+                            bx = _mmuHook.ReadWord(ss, (ushort)(sp - 8));
+                            //sp = _mmu.ReadWord(ss, (ushort)(sp - 10));
+                            bp = _mmuHook.ReadWord(ss, (ushort)(sp - 12));
+                            si = _mmuHook.ReadWord(ss, (ushort)(sp - 14));
+                            di = _mmuHook.ReadWord(ss, (ushort)(sp - 16));
                             break;
 
                         case 0x62:
@@ -1489,8 +1481,8 @@ namespace Topten.Sharp86
                                 throw new InvalidOpCodeException();
 
                             // Read bounds
-                            short lowerBound = (short)_activeMemoryBus.ReadWord(_modRMSeg, _modRMOffset);
-                            short upperBound = (short)_activeMemoryBus.ReadWord(_modRMSeg, (ushort)(_modRMOffset + 2));
+                            short lowerBound = (short)_mmuHook.ReadWord(_modRMSeg, _modRMOffset);
+                            short upperBound = (short)_mmuHook.ReadWord(_modRMSeg, (ushort)(_modRMOffset + 2));
 
                             // Read array index
                             short arrayIndex = (short)Read_Gv();
@@ -1512,7 +1504,7 @@ namespace Topten.Sharp86
                         case 0x68:
                             // Push Iv
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, Read_Iv());
+                            _mmuHook.WriteWord(ss, sp, Read_Iv());
                             break;
 
                         case 0x69:
@@ -1523,7 +1515,7 @@ namespace Topten.Sharp86
                         case 0x6A:
                             // PUSH Ib
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, (ushort)(sbyte)Read_Ib());
+                            _mmuHook.WriteWord(ss, sp, (ushort)(sbyte)Read_Ib());
                             break;
 
                         case 0x6B:
@@ -1538,7 +1530,7 @@ namespace Topten.Sharp86
                             {
                                 do
                                 {
-                                    _activeMemoryBus.WriteByte(es, di, _portBus.ReadPortByte(dx));
+                                    _mmuHook.WriteByte(es, di, _portBus.ReadPortByte(dx));
                                     if (FlagD)
                                     {
                                         di--;
@@ -1558,7 +1550,7 @@ namespace Topten.Sharp86
                                 // INSW
                                 do
                                 {
-                                    _activeMemoryBus.WriteWord(es, di, _portBus.ReadPortWord(dx));
+                                    _mmuHook.WriteWord(es, di, _portBus.ReadPortWord(dx));
                                     if (FlagD)
                                     {
                                         di -= 2;
@@ -1578,7 +1570,7 @@ namespace Topten.Sharp86
                             {
                                 do
                                 {
-                                    _portBus.WritePortByte(dx, _activeMemoryBus.ReadByte(ds, si));
+                                    _portBus.WritePortByte(dx, _mmuHook.ReadByte(ds, si));
                                     if (FlagD)
                                     {
                                         si--;
@@ -1598,7 +1590,7 @@ namespace Topten.Sharp86
                             {
                                 do
                                 {
-                                    _portBus.WritePortWord(dx, _activeMemoryBus.ReadWord(ds, si));
+                                    _portBus.WritePortWord(dx, _mmuHook.ReadWord(ds, si));
                                     if (FlagD)
                                     {
                                         si -= 2;
@@ -1867,7 +1859,7 @@ namespace Topten.Sharp86
 
                         case 0x8F:
                             // POP Ev
-                            Write_Ev(_activeMemoryBus.ReadWord(ss, sp));
+                            Write_Ev(_mmuHook.ReadWord(ss, sp));
                             sp += 2;
                             break;
 
@@ -1943,17 +1935,17 @@ namespace Topten.Sharp86
                                 // CALL Ap
 
                                 // Read target address
-                                temp = _activeMemoryBus.ReadWord(cs, ip);
+                                temp = _mmuHook.ReadWord(cs, ip);
                                 ip += 2;
 
-                                var newcs = _activeMemoryBus.ReadWord(cs, ip);
+                                var newcs = _mmuHook.ReadWord(cs, ip);
                                 ip += 2;
 
                                 // Push current ip
                                 sp -= 2;
-                                _activeMemoryBus.WriteWord(ss, sp, cs);
+                                _mmuHook.WriteWord(ss, sp, cs);
                                 sp -= 2;
-                                _activeMemoryBus.WriteWord(ss, sp, ip);
+                                _mmuHook.WriteWord(ss, sp, ip);
 
                                 // Jump
                                 ip = temp;
@@ -1969,12 +1961,12 @@ namespace Topten.Sharp86
                         case 0x9C:
                             // PUSHF
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, EFlags);
+                            _mmuHook.WriteWord(ss, sp, EFlags);
                             break;
 
                         case 0x9D:
                             // POPF
-                            EFlags = _activeMemoryBus.ReadWord(ss, sp);
+                            EFlags = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             break;
 
@@ -1990,30 +1982,30 @@ namespace Topten.Sharp86
 
                         case 0xA0:
                             // MOV al, [Ob]
-                            temp = _activeMemoryBus.ReadWord(cs, ip);
+                            temp = _mmuHook.ReadWord(cs, ip);
                             ip += 2;
-                            al = _activeMemoryBus.ReadByte(ResolveSegmentPtr(RegSeg.DS), temp);
+                            al = _mmuHook.ReadByte(ResolveSegmentPtr(RegSeg.DS), temp);
                             break;
 
                         case 0xA1:
                             // MOV ax, [Ov]
-                            temp = _activeMemoryBus.ReadWord(cs, ip);
+                            temp = _mmuHook.ReadWord(cs, ip);
                             ip += 2;
-                            ax = _activeMemoryBus.ReadWord(ResolveSegmentPtr(RegSeg.DS), temp);
+                            ax = _mmuHook.ReadWord(ResolveSegmentPtr(RegSeg.DS), temp);
                             break;
 
                         case 0xA2:
                             // MOV [Ob], al
-                            temp = _activeMemoryBus.ReadWord(cs, ip);
+                            temp = _mmuHook.ReadWord(cs, ip);
                             ip += 2;
-                            _activeMemoryBus.WriteByte(ResolveSegmentPtr(RegSeg.DS), temp, al);
+                            _mmuHook.WriteByte(ResolveSegmentPtr(RegSeg.DS), temp, al);
                             break;
 
                         case 0xA3:
                             // MOV [Ob], ax
-                            temp = _activeMemoryBus.ReadWord(cs, ip);
+                            temp = _mmuHook.ReadWord(cs, ip);
                             ip += 2;
-                            _activeMemoryBus.WriteWord(ResolveSegmentPtr(RegSeg.DS), temp, ax);
+                            _mmuHook.WriteWord(ResolveSegmentPtr(RegSeg.DS), temp, ax);
                             break;
 
                         case 0xA4:
@@ -2023,7 +2015,7 @@ namespace Topten.Sharp86
                                 temp = ResolveSegmentPtr(RegSeg.DS);
                                 do
                                 {
-                                    _activeMemoryBus.WriteByte(es, di, _activeMemoryBus.ReadByte(temp, si));
+                                    _mmuHook.WriteByte(es, di, _mmuHook.ReadByte(temp, si));
                                     if (FlagD)
                                     {
                                         di--;
@@ -2046,7 +2038,7 @@ namespace Topten.Sharp86
                                 temp = ResolveSegmentPtr(RegSeg.DS);
                                 do
                                 {
-                                    _activeMemoryBus.WriteWord(es, di, _activeMemoryBus.ReadWord(temp, si));
+                                    _mmuHook.WriteWord(es, di, _mmuHook.ReadWord(temp, si));
                                     if (FlagD)
                                     {
                                         di -= 2;
@@ -2069,7 +2061,7 @@ namespace Topten.Sharp86
                                 temp = ResolveSegmentPtr(RegSeg.DS);
                                 do
                                 {
-                                    Sub8(_activeMemoryBus.ReadByte(ResolveSegmentPtr(RegSeg.DS), si), _activeMemoryBus.ReadByte(es, di));
+                                    Sub8(_mmuHook.ReadByte(ResolveSegmentPtr(RegSeg.DS), si), _mmuHook.ReadByte(es, di));
                                     if (FlagD)
                                     {
                                         di -= 1;
@@ -2093,7 +2085,7 @@ namespace Topten.Sharp86
                                 temp = ResolveSegmentPtr(RegSeg.DS);
                                 do
                                 {
-                                    Sub16(_activeMemoryBus.ReadWord(ResolveSegmentPtr(RegSeg.DS), si), _activeMemoryBus.ReadWord(es, di));
+                                    Sub16(_mmuHook.ReadWord(ResolveSegmentPtr(RegSeg.DS), si), _mmuHook.ReadWord(es, di));
                                     if (FlagD)
                                     {
                                         di -= 2;
@@ -2125,7 +2117,7 @@ namespace Topten.Sharp86
                                 // STOSB
                                 do
                                 {
-                                    _activeMemoryBus.WriteByte(es, di, al);
+                                    _mmuHook.WriteByte(es, di, al);
                                     if (FlagD)
                                     {
                                         di--;
@@ -2145,7 +2137,7 @@ namespace Topten.Sharp86
                                 // STOSW
                                 do
                                 {
-                                    _activeMemoryBus.WriteWord(es, di, ax);
+                                    _mmuHook.WriteWord(es, di, ax);
                                     if (FlagD)
                                     {
                                         di -= 2;
@@ -2167,7 +2159,7 @@ namespace Topten.Sharp86
                                 temp = ResolveSegmentPtr(RegSeg.DS);
                                 do
                                 {
-                                    al = _activeMemoryBus.ReadByte(temp, si);
+                                    al = _mmuHook.ReadByte(temp, si);
                                     if (FlagD)
                                     {
                                         si--;
@@ -2188,7 +2180,7 @@ namespace Topten.Sharp86
                                 temp = ResolveSegmentPtr(RegSeg.DS);
                                 do
                                 {
-                                    ax = _activeMemoryBus.ReadWord(temp, si);
+                                    ax = _mmuHook.ReadWord(temp, si);
                                     if (FlagD)
                                     {
                                         si -= 2;
@@ -2208,7 +2200,7 @@ namespace Topten.Sharp86
                                 // SCASB
                                 do
                                 {
-                                    Sub8(al, _activeMemoryBus.ReadByte(es, di));
+                                    Sub8(al, _mmuHook.ReadByte(es, di));
                                     if (FlagD)
                                     {
                                         di -= 1;
@@ -2228,7 +2220,7 @@ namespace Topten.Sharp86
                             {
                                 do
                                 {
-                                    Sub16(ax, _activeMemoryBus.ReadWord(es, di));
+                                    Sub16(ax, _mmuHook.ReadWord(es, di));
                                     if (FlagD)
                                     {
                                         di -= 2;
@@ -2358,14 +2350,14 @@ namespace Topten.Sharp86
                         case 0xC2:
                             // RET Iw
                             temp = Read_Iv();
-                            ip = _activeMemoryBus.ReadWord(ss, sp);
+                            ip = _mmuHook.ReadWord(ss, sp);
                             sp += (ushort)(temp + 2);
                             _didReturn = true;
                             break;
 
                         case 0xC3:
                             // RET
-                            ip = _activeMemoryBus.ReadWord(ss, sp);
+                            ip = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             _didReturn = true;
                             break;
@@ -2377,7 +2369,7 @@ namespace Topten.Sharp86
                                 throw new InvalidOpCodeException();
 
                             Write_Gv(Read_Ev());
-                            es = _activeMemoryBus.ReadWord(_modRMSeg, (ushort)(_modRMOffset + 2));
+                            es = _mmuHook.ReadWord(_modRMSeg, (ushort)(_modRMOffset + 2));
                             break;
 
                         case 0xC5:
@@ -2387,7 +2379,7 @@ namespace Topten.Sharp86
                                 throw new InvalidOpCodeException();
 
                             Write_Gv(Read_Ev());
-                            ds = _activeMemoryBus.ReadWord(_modRMSeg, (ushort)(_modRMOffset + 2));
+                            ds = _mmuHook.ReadWord(_modRMSeg, (ushort)(_modRMOffset + 2));
                             break;
 
                         case 0xC6:
@@ -2409,7 +2401,7 @@ namespace Topten.Sharp86
 
                             // Push bp
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, bp);
+                            _mmuHook.WriteWord(ss, sp, bp);
 
                             if (nestingLevel == 0)
                             {
@@ -2422,11 +2414,11 @@ namespace Topten.Sharp86
                                 {
                                     bp -= 2;
                                     sp -= 2;
-                                    _activeMemoryBus.WriteWord(ss, sp, _activeMemoryBus.ReadWord(ss, bp));
+                                    _mmuHook.WriteWord(ss, sp, _mmuHook.ReadWord(ss, bp));
                                 }
 
                                 sp -= 2;
-                                _activeMemoryBus.WriteWord(ss, sp, temp);
+                                _mmuHook.WriteWord(ss, sp, temp);
 
                                 bp = temp;
                             }
@@ -2437,7 +2429,7 @@ namespace Topten.Sharp86
                         case 0xC9:
                             // LEAVE
                             sp = bp;
-                            bp = _activeMemoryBus.ReadWord(ss, sp);
+                            bp = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             break;
 
@@ -2445,9 +2437,9 @@ namespace Topten.Sharp86
                             // RETF Iv
                             temp = Read_Iv();
 
-                            ip = _activeMemoryBus.ReadWord(ss, sp);
+                            ip = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
-                            cs = _activeMemoryBus.ReadWord(ss, sp);
+                            cs = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
 
                             sp += temp;
@@ -2456,9 +2448,9 @@ namespace Topten.Sharp86
 
                         case 0xCB:
                             // RETF
-                            ip = _activeMemoryBus.ReadWord(ss, sp);
+                            ip = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
-                            cs = _activeMemoryBus.ReadWord(ss, sp);
+                            cs = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             _didReturn = true;
                             break;
@@ -2486,11 +2478,11 @@ namespace Topten.Sharp86
 
                         case 0xCF:
                             // IRET
-                            ip = _activeMemoryBus.ReadWord(ss, sp);
+                            ip = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
-                            cs = _activeMemoryBus.ReadWord(ss, sp);
+                            cs = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
-                            EFlags = _activeMemoryBus.ReadWord(ss, sp);
+                            EFlags = _mmuHook.ReadWord(ss, sp);
                             sp += 2;
                             _didReturn = true;
                             break;
@@ -2575,7 +2567,7 @@ namespace Topten.Sharp86
 
                         case 0xD7:
                             // XLAT
-                            al = _activeMemoryBus.ReadByte(ResolveSegmentPtr(RegSeg.DS), (ushort)(bx + al));
+                            al = _mmuHook.ReadByte(ResolveSegmentPtr(RegSeg.DS), (ushort)(bx + al));
                             break;
 
                         case 0xD8:
@@ -2652,7 +2644,7 @@ namespace Topten.Sharp86
 
                             // Push current ip
                             sp -= 2;
-                            _activeMemoryBus.WriteWord(ss, sp, ip);
+                            _mmuHook.WriteWord(ss, sp, ip);
 
                             // Jump
                             ip += temp;
@@ -2821,7 +2813,7 @@ namespace Topten.Sharp86
                                         // NEAR CALL Ev
                                         ushort proc = Read_Ev();
                                         sp -= 2;
-                                        _activeMemoryBus.WriteWord(ss, sp, ip);
+                                        _mmuHook.WriteWord(ss, sp, ip);
                                         ip = proc;
                                         break;
                                     }
@@ -2830,12 +2822,12 @@ namespace Topten.Sharp86
                                         // FAR CALL M
                                         if (!_modRMIsPointer)
                                             throw new InvalidOpCodeException(); ;
-                                        ushort proc = _activeMemoryBus.ReadWord(_modRMSeg, _modRMOffset);
-                                        ushort seg = _activeMemoryBus.ReadWord(_modRMSeg, (ushort)(_modRMOffset + 2));
+                                        ushort proc = _mmuHook.ReadWord(_modRMSeg, _modRMOffset);
+                                        ushort seg = _mmuHook.ReadWord(_modRMSeg, (ushort)(_modRMOffset + 2));
                                         sp -= 2;
-                                        _activeMemoryBus.WriteWord(ss, sp, cs);
+                                        _mmuHook.WriteWord(ss, sp, cs);
                                         sp -= 2;
-                                        _activeMemoryBus.WriteWord(ss, sp, ip);
+                                        _mmuHook.WriteWord(ss, sp, ip);
                                         ip = proc;
                                         cs = seg;
                                         break;
@@ -2851,8 +2843,8 @@ namespace Topten.Sharp86
                                         // FAR JMP M
                                         if (!_modRMIsPointer)
                                             throw new InvalidOpCodeException(); ;
-                                        ip = _activeMemoryBus.ReadWord(_modRMSeg, _modRMOffset);
-                                        cs = _activeMemoryBus.ReadWord(_modRMSeg, (ushort)(_modRMOffset + 2));
+                                        ip = _mmuHook.ReadWord(_modRMSeg, _modRMOffset);
+                                        cs = _mmuHook.ReadWord(_modRMSeg, (ushort)(_modRMOffset + 2));
                                         break;
                                     }
 
@@ -2861,7 +2853,7 @@ namespace Topten.Sharp86
                                         // PUSH
                                         temp = Read_Ev();
                                         sp -= 2;
-                                        _activeMemoryBus.WriteWord(ss, sp, temp);
+                                        _mmuHook.WriteWord(ss, sp, temp);
                                         break;
                                     }
 

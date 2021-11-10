@@ -37,7 +37,7 @@ namespace UnitTests
             al = 0x12;
             emit("stosb");
             run();
-            Assert.Equal(0x12, ReadByte(es, (ushort)(di - 1)));
+            Assert.Equal(0x12, MMU.ReadByte(es, (ushort)(di - 1)));
             Assert.Equal(0x201, di);
         }
 
@@ -56,7 +56,7 @@ namespace UnitTests
             Assert.Equal(0, cx);
             for (int i = 0; i < 16; i++)
             {
-                Assert.Equal(ReadByte(es, (ushort)(di - 16 + i)), al);
+                Assert.Equal(MMU.ReadByte(es, (ushort)(di - 16 + i)), al);
             }
         }
 
@@ -127,7 +127,7 @@ namespace UnitTests
         {
             ds = 0x0020;
             si = 0x200;
-            WriteByte(ds, si, 0x12);
+            MMU.WriteByte(ds, si, 0x12);
             emit("lodsb");
             run();
             Assert.Equal(0x12, al);
@@ -143,7 +143,7 @@ namespace UnitTests
 
             for (int i=0; i<16; i++)
             {
-                WriteByte(ds, (ushort)(si + i), (byte)(0x10 + i));
+                MMU.WriteByte(ds, (ushort)(si + i), (byte)(0x10 + i));
             }
 
             emit("rep lodsb");
@@ -220,7 +220,7 @@ namespace UnitTests
         {
             es = 0x0020;
             di = 0x200;
-            WriteByte(es, di, 0x12);
+            MMU.WriteByte(es, di, 0x12);
             al = 0x11;
             emit("scasb");
             run();
@@ -238,7 +238,7 @@ namespace UnitTests
 
             for (int i = 0; i < 16; i++)
             {
-                WriteByte(es, (ushort)(di + i), 0x11);
+                MMU.WriteByte(es, (ushort)(di + i), 0x11);
             }
 
             al = 0x11;
@@ -272,9 +272,9 @@ namespace UnitTests
 
             for (int i = 0; i < 16; i++)
             {
-                WriteByte(es, (ushort)(di + i), 0x11);
+                MMU.WriteByte(es, (ushort)(di + i), 0x11);
             }
-            WriteByte(es, (ushort)(di + 2), 0x12);
+            MMU.WriteByte(es, (ushort)(di + 2), 0x12);
 
             al = 0x11;
             cx = 16;
@@ -293,9 +293,9 @@ namespace UnitTests
 
             for (int i = 0; i < 16; i++)
             {
-                WriteByte(es, (ushort)(di + i), 0x11);
+                MMU.WriteByte(es, (ushort)(di + i), 0x11);
             }
-            WriteByte(es, (ushort)(di + 2), 0x12);
+            MMU.WriteByte(es, (ushort)(di + 2), 0x12);
 
             al = 0x12;
             cx = 16;

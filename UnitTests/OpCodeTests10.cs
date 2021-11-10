@@ -12,12 +12,12 @@ namespace UnitTests
         [Fact]
         public void Adc_Eb_Gb()
         {
-            WriteByte(0, 100, 40);
+            MMU.WriteByte(0, 100, 40);
             FlagC = true;
             al = 20;
             emit("adc byte [100], al");
             run();
-            Assert.Equal(61, ReadByte(0, 100));
+            Assert.Equal(61, MMU.ReadByte(0, 100));
         }
 
         [Fact]
@@ -34,7 +34,7 @@ namespace UnitTests
         [Fact]
         public void Adc_Gb_Eb()
         {
-            WriteByte(0, 100, 40);
+            MMU.WriteByte(0, 100, 40);
             al = 20;
             FlagC = true;
             emit("adc al, byte [100]");

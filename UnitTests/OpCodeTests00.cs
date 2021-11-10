@@ -12,11 +12,11 @@ namespace UnitTests
         [Fact]
         public void Add_Eb_Gb()
         {
-            WriteByte(0, 100, 40);
+            MMU.WriteByte(0, 100, 40);
             al = 20;
             emit("add byte [100], al");
             run();
-            Assert.Equal(60, ReadByte(0, 100));
+            Assert.Equal(60, MMU.ReadByte(0, 100));
         }
 
         [Fact]
@@ -32,7 +32,7 @@ namespace UnitTests
         [Fact]
         public void Add_Gb_Eb()
         {
-            WriteByte(0, 100, 40);
+            MMU.WriteByte(0, 100, 40);
             al = 20;
             emit("add al, byte [100]");
             run();

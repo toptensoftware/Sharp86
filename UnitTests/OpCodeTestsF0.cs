@@ -35,7 +35,7 @@ namespace UnitTests
         public void test_Eb_Ib()
         {
             si = 0x8000;
-            WriteByte(ds, si, 0x88);
+            MMU.WriteByte(ds, si, 0x88);
             emit("test byte [si],0x80");
             step();
             Assert.False(FlagZ);
@@ -49,27 +49,27 @@ namespace UnitTests
         public void not_Eb_Ib()
         {
             si = 0x8000;
-            WriteByte(ds, si, 0x88);
+            MMU.WriteByte(ds, si, 0x88);
             emit("not byte [si]");
             step();
-            Assert.Equal(0x77, ReadByte(ds, si));
+            Assert.Equal(0x77, MMU.ReadByte(ds, si));
         }
 
         [Fact]
         public void neg_Eb_Ib()
         {
             si = 0x8000;
-            WriteByte(ds, si, 1);
+            MMU.WriteByte(ds, si, 1);
             emit("neg byte [si]");
             step();
-            Assert.Equal(0xFF, ReadByte(ds, si));
+            Assert.Equal(0xFF, MMU.ReadByte(ds, si));
         }
 
         [Fact]
         public void mul_Eb_Ib()
         {
             al = 100;
-            WriteByte(ds, si, 200);
+            MMU.WriteByte(ds, si, 200);
             emit("mul byte [si]");
             step();
             Assert.Equal(20000, ax);
@@ -79,7 +79,7 @@ namespace UnitTests
         public void imul_Eb_Ib()
         {
             al = 0xFF;
-            WriteByte(ds, si, 0xFF);
+            MMU.WriteByte(ds, si, 0xFF);
             emit("imul byte [si]");
             step();
             Assert.Equal(1, ax);
@@ -89,7 +89,7 @@ namespace UnitTests
         public void div_Eb_Ib()
         {
             ax = 20001;
-            WriteByte(ds, si, 200);
+            MMU.WriteByte(ds, si, 200);
             emit("div byte [si]");
             step();
             Assert.Equal(100, al);
@@ -100,7 +100,7 @@ namespace UnitTests
         public void idiv_Eb_Ib()
         {
             ax = 10001;
-            WriteByte(ds, si, 100);
+            MMU.WriteByte(ds, si, 100);
             emit("idiv byte [si]");
             step();
             Assert.Equal(100, al);

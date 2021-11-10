@@ -12,12 +12,12 @@ namespace UnitTests
         [Fact]
         public void Sub_Eb_Gb()
         {
-            WriteByte(0, 100, 40);
+            MMU.WriteByte(0, 100, 40);
             FlagC = true;
             al = 10;
             emit("sub byte [100], al");
             run();
-            Assert.Equal(30, ReadByte(0, 100));
+            Assert.Equal(30, MMU.ReadByte(0, 100));
         }
 
         [Fact]
@@ -34,7 +34,7 @@ namespace UnitTests
         [Fact]
         public void Sub_Gb_Eb()
         {
-            WriteByte(0, 100, 10);
+            MMU.WriteByte(0, 100, 10);
             al = 40;
             FlagC = true;
             emit("sub al, byte [100]");

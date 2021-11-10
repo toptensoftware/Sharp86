@@ -46,7 +46,7 @@ namespace Topten.Sharp86
             ctx.ClearLineOnReturn = true;
 
             // Setup disassembler
-            _dis.MemoryBus = _debugger.CPU.MemoryBus;
+            _dis.MMU = _debugger.CPU.MMU;
             _dis.cs = _topLineCS;
             _dis.ip = _topLineIP;
 
@@ -122,7 +122,7 @@ namespace Topten.Sharp86
                     {
                         try
                         {
-                            ctx.Write("{0:X2} ", _debugger.MemoryBus.ReadByte(_dis.cs, (ushort)(ipPos + b)));
+                            ctx.Write("{0:X2} ", _debugger.CPU.MMU.ReadByte(_dis.cs, (ushort)(ipPos + b)));
                         }
                         catch (CPUException)
                         {

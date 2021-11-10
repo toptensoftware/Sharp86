@@ -18,6 +18,7 @@ namespace UnitTests
             _emitLocation = 0x100;
             _emitBuffer.Length = 0;
             _emitBuffer.Append("ORG 0x100\n");
+            cs = 0;
             ip = 0x100;
             _mem = new byte[0x20000];
             _portReadQueues = new Dictionary<ushort, List<byte>>();
@@ -29,21 +30,14 @@ namespace UnitTests
         ushort _emitLocation;
         StringBuilder _emitBuffer = new StringBuilder();
 
-        public bool IsExecutableSelector(ushort seg)
+        public byte ReadByte(uint addr)
         {
-            return true;
-        }
-
-        public byte ReadByte(ushort seg, ushort offset)
-        {
-            var addr = (seg << 4) + offset;
             var b = _mem[addr];
             return b;
         }
 
-        public void WriteByte(ushort seg, ushort offset, byte value)
+        public void WriteByte(uint addr, byte value)
         {
-            var addr = (seg << 4) + offset;
             _mem[addr] = value;
         }
 
@@ -91,7 +85,7 @@ namespace UnitTests
             var bytes = System.IO.File.ReadAllBytes("temp.bin");
             for (int i=(4-(_emitLocation % 4))%4; i<bytes.Length; i++)
             {
-                WriteByte(0, _emitLocation++, bytes[i]);
+                MMU.WriteByte(0, _emitLocation++, bytes[i]);
             }
 
             // Clear the emit buffer
@@ -180,13 +174,13 @@ namespace UnitTests
 
         public ushort ReadWord(ushort seg, ushort offset)
         {
-            return (ushort)(ReadByte(seg, offset) | ReadByte(seg, (ushort)(offset + 1)) << 8);
+            return (ushort)(MMU.ReadByte(seg, offset) | MMU.ReadByte(seg, (ushort)(offset + 1)) << 8);
         }
 
         public void WriteWord(ushort seg, ushort offset, ushort value)
         {
-            WriteByte(seg, offset, (byte)(value & 0xFF));
-            WriteByte(seg, (ushort)(offset + 1), (byte)(value >> 8));
+            MMU.WriteByte(seg, offset, (byte)(value & 0xFF));
+            MMU.WriteByte(seg, (ushort)(offset + 1), (byte)(value >> 8));
         }
 
     }

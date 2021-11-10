@@ -340,7 +340,7 @@ namespace UnitTests
             bx = 0x1000;
             for (int i=0; i<256; i++)
             {
-                WriteByte(ds, (ushort)(bx + i), (byte)i);
+                MMU.WriteByte(ds, (ushort)(bx + i), (byte)i);
             }
 
             al = 0x20;

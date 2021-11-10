@@ -76,12 +76,12 @@ namespace Topten.Sharp86
         byte[] CaptureSegment(ushort seg)
         {
             var list = new List<byte>();
-            var bus = _debugger.CPU.MemoryBus;
+            var mmu = _debugger.CPU.MMU;
             try
             {
                 for (int i = 0; i < 0x10000; i++)
                 {
-                    list.Add(bus.ReadByte(seg, (ushort)i));
+                    list.Add(mmu.ReadByte(seg, (ushort)i));
                 }
             }
             catch (CPUException)
@@ -97,7 +97,7 @@ namespace Topten.Sharp86
 
         public override void OnPaint(PaintContext ctx)
         {
-            var bus = _debugger.CPU.MemoryBus;
+            var mmu = _debugger.CPU.MMU;
 
             ctx.ForegroundColor = ConsoleColor.Gray;
 
@@ -158,7 +158,7 @@ namespace Topten.Sharp86
                             try
                             {
                                 // Get the byte
-                                var b = bus.ReadByte(_seg, (ushort)(offset + bi));
+                                var b = mmu.ReadByte(_seg, (ushort)(offset + bi));
 
                                 // Update the data word
                                 data = (uint)(data | (uint)(b << (8 * bi)));
