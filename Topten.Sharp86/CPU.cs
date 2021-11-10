@@ -145,7 +145,8 @@ namespace Topten.Sharp86
             di = 0;
             sp = 0;
             bp = 0;
-            cs = 0;
+            cs = 0xF000;
+            ip = 0xFFF0;
             ds = 0;
             ss = 0;
             es = 0;
@@ -193,7 +194,7 @@ namespace Topten.Sharp86
                 _cs = value;
             }
         }
-        ushort _cs;
+        ushort _cs = 0xF000;
         public ushort es;
         public ushort ds;
         public ushort ReadReg(RegSeg reg)
@@ -239,7 +240,7 @@ namespace Topten.Sharp86
         public ushort dx;
         public ushort si;
         public ushort di;
-        public ushort ip;
+        public ushort ip = 0xFFF0;
         public ushort sp;
         public ushort bp;
         public ushort ReadReg(Reg16 reg)
